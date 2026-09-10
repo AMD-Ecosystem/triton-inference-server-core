@@ -30,6 +30,7 @@ cmake_minimum_required(VERSION 3.31.8)
 # Unit tests
 #
 find_package(GTest REQUIRED)
+find_package(re2 REQUIRED)
 
 #
 # CudaMemoryManger
@@ -426,6 +427,7 @@ target_link_libraries(
     GTest::gtest
     GTest::gtest_main
     protobuf::libprotobuf
+    re2::re2
 )
 
 install(
@@ -466,6 +468,7 @@ if(${TRITON_ENABLE_METRICS})
       ${CMAKE_CURRENT_SOURCE_DIR}/..
       ${CMAKE_CURRENT_SOURCE_DIR}/../../include
       ${GTEST_INCLUDE_DIRS}
+      ${Boost_INCLUDE_DIRS}
   )
 
   target_compile_definitions(
