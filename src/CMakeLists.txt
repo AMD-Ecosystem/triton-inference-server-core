@@ -85,9 +85,10 @@ if(${TRITON_ENABLE_ROCM})
   set(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
   include(${REPO_ROOT}/cmake/triton_rocm_hipify.cmake)
   
-  # Exclude test, ensemble_scheduler, and stub files from hipification
-  # tritonserver_stub.cc is for a separate library (triton-core-serverstub), not the main library
-  set(HIPIFY_EXCLUDE_PATTERNS "test/*" "ensemble_scheduler/*" "tritonserver_stub.cc")
+  # Exclude test and stub files from hipification.
+  # tritonserver_stub.cc is for a separate library (triton-core-serverstub), not the main library.
+  # Hipify ensemble_scheduler so ROCm links ensemble (the ROCm library is hipified sources only).
+  set(HIPIFY_EXCLUDE_PATTERNS "test/*" "tritonserver_stub.cc")
   hipify("src" HIPIFY_EXCLUDE_PATTERNS triton_hipified_cc_srcs triton_hipified_cu_srcs)
   
   add_custom_target(generated_hipified_files DEPENDS
