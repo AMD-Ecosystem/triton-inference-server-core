@@ -284,6 +284,11 @@ endif() # TRITON_ENABLE_ENSEMBLE
 # For ROCm builds, use ONLY hipified sources (they replace all original sources)
 # For non-ROCm builds, use original sources
 if(${TRITON_ENABLE_ROCM})
+  # Hipify globs every src/*.cc. ensemble_model.cc is NVIDIA-gated by
+  # TRITON_ENABLE_ENSEMBLE (the header is empty when the flag is off).
+  if(NOT ${TRITON_ENABLE_ENSEMBLE})
+    list(FILTER triton_hipified_cc_srcs EXCLUDE REGEX "ensemble_model\\.cc$")
+  endif()
   add_library(
     triton-core SHARED
     ${triton_hipified_cc_srcs}
