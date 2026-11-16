@@ -30,6 +30,7 @@ cmake_minimum_required(VERSION 3.31.8)
 # Unit tests
 #
 find_package(GTest REQUIRED)
+find_package(re2 REQUIRED)
 
 #
 # CudaMemoryManger
@@ -426,6 +427,7 @@ target_link_libraries(
     GTest::gtest
     GTest::gtest_main
     protobuf::libprotobuf
+    re2::re2
 )
 
 install(
@@ -466,6 +468,7 @@ if(${TRITON_ENABLE_METRICS})
       ${CMAKE_CURRENT_SOURCE_DIR}/..
       ${CMAKE_CURRENT_SOURCE_DIR}/../../include
       ${GTEST_INCLUDE_DIRS}
+      ${Boost_INCLUDE_DIRS}
   )
 
   target_compile_definitions(
@@ -554,10 +557,18 @@ install(
 #
 # Unit test for InstanceQueue
 #
+# ROCm production InstanceQueue is the hipified copy; compile that so the
+# unit test matches libtritonserver.so. The test .cc itself is CUDA-free.
+set(_INSTANCE_QUEUE_CC ../instance_queue.cc)
+if(${TRITON_ENABLE_ROCM})
+  set(_INSTANCE_QUEUE_CC
+      ${CMAKE_CURRENT_BINARY_DIR}/../amdgpu/src/instance_queue.cc)
+endif() # TRITON_ENABLE_ROCM
+
 add_executable(
   instance_queue_test
   instance_queue_test.cc
-  ../instance_queue.cc
+  ${_INSTANCE_QUEUE_CC}
 )
 
 set_target_properties(
@@ -576,6 +587,21 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../../include
     ${GTEST_INCLUDE_DIRS}
 )
+
+if(${TRITON_ENABLE_ROCM})
+  add_dependencies(instance_queue_test generated_hipified_files)
+  target_include_directories(
+    instance_queue_test
+    PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}/../amdgpu/src
+  )
+  target_compile_definitions(
+    instance_queue_test
+    PRIVATE
+      TRITON_ENABLE_ROCM=1
+      __HIP_PLATFORM_AMD__=1
+  )
+endif() # TRITON_ENABLE_ROCM
 
 target_link_libraries(
   instance_queue_test
