@@ -491,7 +491,7 @@ if __name__ == "__main__":
     # .so it finds, and auditwheel then tags the wheel for the strictest
     # one, which pip will not install on this interpreter.
     for name in os.listdir(c_dir):
-        if name.startswith("triton_bindings") and name.endswith(".so") and name != PYBIND_LIB:
+        if name.endswith(".so") and name != PYBIND_LIB:
             os.remove(os.path.join(c_dir, name))
 
     shutil.copyfile("LICENSE.txt", os.path.join(FLAGS.whl_dir, "LICENSE.txt"))
