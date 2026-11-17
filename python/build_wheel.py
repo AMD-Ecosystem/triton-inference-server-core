@@ -481,10 +481,18 @@ if __name__ == "__main__":
     cpdir("tritonserver/_c", os.path.join(FLAGS.whl_dir, "tritonserver", "_c"))
     cpdir("tritonserver/_api", os.path.join(FLAGS.whl_dir, "tritonserver", "_api"))
     PYBIND_LIB = os.path.basename(FLAGS.binding_path)
+    c_dir = os.path.join(FLAGS.whl_dir, "tritonserver", "_c")
     shutil.copyfile(
         FLAGS.binding_path,
-        os.path.join(FLAGS.whl_dir, "tritonserver", "_c", PYBIND_LIB),
+        os.path.join(c_dir, PYBIND_LIB),
     )
+    # A reused build directory can still hold an extension built for another
+    # CPython (for example cp314 next to cp311). Hatchling packages every
+    # .so it finds, and auditwheel then tags the wheel for the strictest
+    # one, which pip will not install on this interpreter.
+    for name in os.listdir(c_dir):
+        if name.startswith("triton_bindings") and name.endswith(".so") and name != PYBIND_LIB:
+            os.remove(os.path.join(c_dir, name))
 
     shutil.copyfile("LICENSE.txt", os.path.join(FLAGS.whl_dir, "LICENSE.txt"))
     shutil.copyfile("hatch_build.py", os.path.join(FLAGS.whl_dir, "hatch_build.py"))
