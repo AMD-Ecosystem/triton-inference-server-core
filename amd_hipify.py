@@ -55,6 +55,8 @@ def hipify(hipify_perl_path, src_file_path, dst_file_path):
     s = s.replace("SliceCuda", "SliceRocm")
     s = s.replace("thrust::cuda", "thrust::hip")
     s = s.replace("CudaCall", "RocmCall")
+    # The CUDA driver API that CudaDriverHelper dlopens lives in libamdhip64.
+    s = s.replace('"libcuda.so"', '"libamdhip64.so"')
     s = s.replace("cuda", "rocm")
     s = s.replace("void CUDART_CB", "static void")
     s = s.replace("#ifdef TRITON_ENABLE_GPU", "#ifdef TRITON_ENABLE_ROCM")

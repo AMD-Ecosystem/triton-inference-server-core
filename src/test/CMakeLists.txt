@@ -344,6 +344,83 @@ if(${TRITON_ENABLE_GPU})
 endif() # TRITON_ENABLE_GPU
 
 #
+# ROCm builds of the Memory and PinnedMemoryManager unit tests. Test sources
+# are excluded from the library's hipify pass, so each test is hipified here
+# and compiled against the hipified copies of the code it tests.
+#
+if(${TRITON_ENABLE_ROCM})
+  set(_ROCM_SRC ${CMAKE_CURRENT_BINARY_DIR}/../amdgpu/src)
+
+  function(triton_rocm_memory_test name)
+    set(hipified_test ${CMAKE_CURRENT_BINARY_DIR}/amdgpu/test/${name}.cc)
+    add_custom_command(
+      OUTPUT ${hipified_test}
+      COMMAND Python3::Interpreter ${REPO_ROOT}/amd_hipify.py
+              --hipify_perl ${TRITON_HIPIFY_PERL}
+              ${CMAKE_CURRENT_SOURCE_DIR}/${name}.cc -o ${hipified_test}
+      DEPENDS ${REPO_ROOT}/amd_hipify.py ${CMAKE_CURRENT_SOURCE_DIR}/${name}.cc
+      COMMENT "Hipify: test/${name}.cc"
+    )
+    list(TRANSFORM ARGN PREPEND ${_ROCM_SRC}/)
+    set_source_files_properties(${ARGN} PROPERTIES GENERATED TRUE)
+    add_executable(${name} ${hipified_test} ${ARGN})
+    add_dependencies(${name} generated_hipified_files)
+
+    set_target_properties(
+      ${name}
+      PROPERTIES
+        SKIP_BUILD_RPATH TRUE
+        BUILD_WITH_INSTALL_RPATH TRUE
+        INSTALL_RPATH_USE_LINK_PATH FALSE
+        INSTALL_RPATH ""
+    )
+    target_include_directories(
+      ${name}
+      PRIVATE
+        ${_ROCM_SRC}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+        ${GTEST_INCLUDE_DIRS}
+    )
+    target_compile_definitions(
+      ${name}
+      PRIVATE
+        TRITON_ENABLE_LOGGING=1
+        TRITON_ENABLE_ROCM=1
+        __HIP_PLATFORM_AMD__=1
+        TRITON_MIN_COMPUTE_CAPABILITY=${TRITON_MIN_COMPUTE_CAPABILITY}
+    )
+    target_link_libraries(
+      ${name}
+      PRIVATE
+        triton-common-error        # from repo-common
+        triton-common-logging      # from repo-common
+        proto-library              # from repo-common
+        GTest::gtest
+        GTest::gtest_main
+        protobuf::libprotobuf
+        hip::host
+        dl
+        numa
+    )
+    install(
+      TARGETS ${name}
+      RUNTIME DESTINATION bin
+    )
+  endfunction()
+
+  triton_rocm_memory_test(
+    memory_test
+    buffer_attributes.cc triton_memory.cc rocm_block_manager.cc
+    rocm_memory_manager.cc rocm_utils.cc pinned_memory_manager.cc
+    numa_utils.cc status.cc
+  )
+  triton_rocm_memory_test(
+    pinned_memory_manager_test
+    pinned_memory_manager.cc rocm_utils.cc numa_utils.cc status.cc
+  )
+endif() # TRITON_ENABLE_ROCM
+
+#
 # Unit test for AsycWorkQueue
 #
 add_executable(
