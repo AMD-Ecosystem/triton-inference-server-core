@@ -411,13 +411,14 @@ if(${TRITON_ENABLE_ROCM})
   triton_rocm_memory_test(
     memory_test
     buffer_attributes.cc triton_memory.cc rocm_block_manager.cc
-    rocm_memory_manager.cc rocm_utils.cc pinned_memory_manager.cc
-    numa_utils.cc status.cc
+    rocm_memory_manager.cc rocm_cnmem.cc rocm_utils.cc
+    pinned_memory_manager.cc numa_utils.cc status.cc
   )
   triton_rocm_memory_test(
     pinned_memory_manager_test
     pinned_memory_manager.cc rocm_utils.cc numa_utils.cc status.cc
   )
+  triton_rocm_memory_test(rocm_cnmem_test rocm_cnmem.cc)
 endif() # TRITON_ENABLE_ROCM
 
 #

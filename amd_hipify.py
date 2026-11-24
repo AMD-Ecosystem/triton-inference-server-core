@@ -182,82 +182,9 @@ def hipify(hipify_perl_path, src_file_path, dst_file_path):
     # Deletions
     s = s.replace('#include "device_atomic_functions.h"', "")  # HIP atomics in main hip header already
 
-    # CNMEM handling - skip entire cnmem blocks
-    # cnmem is NVIDIA-specific memory pooling, not available for ROCm
-    # ROCm uses direct hipMalloc/hipFree instead
-    
-    # 1. Remove cnmem.h include
-    s = s.replace("#include <cnmem.h>\n", "")
-    
-    # 2. Replace RETURN_IF_CNMEM_ERROR macro definition with RETURN_IF_HIP_ERROR
-    s = s.replace(
-        """#define RETURN_IF_CNMEM_ERROR(S, MSG)                    \\
-  do {                                                   \\
-    auto status__ = (S);                                 \\
-    if (status__ != CNMEM_STATUS_SUCCESS) {              \\
-      return Status(                                     \\
-          Status::Code::INTERNAL,                        \\
-          (MSG) + ": " + cnmemGetErrorString(status__)); \\
-    }                                                    \\
-  } while (false)""",
-        """#define RETURN_IF_HIP_ERROR(S, MSG)                      \\
-  do {                                                   \\
-    auto status__ = (S);                                 \\
-    if (status__ != hipSuccess) {                        \\
-      return Status(                                     \\
-          Status::Code::INTERNAL,                        \\
-          (MSG) + ": " + hipGetErrorString(status__));   \\
-    }                                                    \\
-  } while (false)""")
-    
-    # 3. Remove destructor cnmem cleanup block (text already has ROCM from cuda->rocm replacement)
-    s = s.replace(
-        """  if (has_allocation_) {
-    auto status = cnmemFinalize();
-    if (status != CNMEM_STATUS_SUCCESS) {
-      LOG_ERROR << "Failed to finalize ROCM memory manager: [" << status << "] "
-                << cnmemGetErrorString(status);
-    }
-  }""",
-        "  // cnmem cleanup not needed for ROCm")
-    
-    # 4. Remove cnmem device setup block 
-    s = s.replace(
-        """    std::vector<cnmemDevice_t> devices;
-    for (auto gpu : supported_gpus) {
-      const auto it = options.memory_pool_byte_size_.find(gpu);
-      if ((it != options.memory_pool_byte_size_.end()) && (it->second != 0)) {
-        devices.emplace_back();
-        auto& device = devices.back();
-        memset(&device, 0, sizeof(device));
-        device.device = gpu;
-        device.size = it->second;
-
-        LOG_INFO << "ROCM memory pool is created on device " << device.device
-                 << " with size " << device.size;
-      }
-    }
-
-    if (!devices.empty()) {
-      RETURN_IF_CNMEM_ERROR(
-          cnmemInit(devices.size(), devices.data(), CNMEM_FLAGS_CANNOT_GROW),
-          std::string("Failed to finalize ROCM memory manager"));
-    } else {
-      LOG_INFO << "ROCM memory pool disabled";
-    }
-
-    // Use to finalize CNMeM properly when out of scope
-    instance_.reset(new CudaMemoryManager(!devices.empty()));""",
-        """    // cnmem memory pooling not available for ROCm - using direct HIP allocation
-    LOG_INFO << "ROCM memory pool disabled (using HIP memory allocation)";
-    instance_.reset(new CudaMemoryManager(!supported_gpus.empty()));""")
-    
-    # 5. Replace cnmemMalloc/cnmemFree with hipMalloc/hipFree
-    s = s.replace("cnmemMalloc(ptr, size, nullptr)", "hipMalloc(ptr, size)")
-    s = s.replace("cnmemFree(ptr, nullptr)", "hipFree(ptr)")
-    
-    # 6. Replace RETURN_IF_CNMEM_ERROR usage with RETURN_IF_HIP_ERROR
-    s = s.replace("RETURN_IF_CNMEM_ERROR", "RETURN_IF_HIP_ERROR")
+    # CudaMemoryManager keeps its cnmem pools; rocm_cnmem.h implements the
+    # cnmem calls it makes with HIP.
+    s = s.replace("#include <cnmem.h>", '#include "rocm_cnmem.h"')
 
     # Fix warnings due to incorrect header paths, intentionally after all other hipify steps.
     s = s.replace("#include <hiprand_kernel.h>", "#include <hiprand/hiprand_kernel.h>")
