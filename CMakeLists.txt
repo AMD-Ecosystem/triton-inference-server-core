@@ -338,7 +338,7 @@ if(NOT TRITON_CORE_HEADERS_ONLY)
       -Daws-c-mqtt_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/aws-sdk-cpp/${LIB_DIR}/aws-c-mqtt/cmake
       -Daws-c-sdkutils_DIR:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/aws-sdk-cpp/${LIB_DIR}/aws-c-sdkutils/cmake
       -DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}
-      "-DCMAKE_CXX_FLAGS:STRING=-I/opt/rocm/include"
+      "-DCMAKE_CXX_FLAGS:STRING=-I/opt/rocm/include ${CMAKE_CXX_FLAGS}"
       -Dhip_DIR:PATH=/opt/rocm/lib/cmake/hip
       -DCNMEM_PATH:PATH=${TRITON_THIRD_PARTY_INSTALL_PREFIX}/cnmem
       -DTRITON_REPO_ORGANIZATION:STRING=${TRITON_REPO_ORGANIZATION}
