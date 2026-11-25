@@ -419,6 +419,39 @@ if(${TRITON_ENABLE_ROCM})
     pinned_memory_manager.cc rocm_utils.cc numa_utils.cc status.cc
   )
   triton_rocm_memory_test(rocm_cnmem_test rocm_cnmem.cc)
+  triton_rocm_memory_test(
+    rocm_utils_test
+    buffer_attributes.cc triton_memory.cc rocm_block_manager.cc
+    rocm_memory_manager.cc rocm_cnmem.cc rocm_utils.cc model_config_rocm.cc
+    pinned_memory_manager.cc numa_utils.cc status.cc
+  )
+
+  add_executable(rocm_server_api_test rocm_server_api_test.cc)
+  set_target_properties(
+    rocm_server_api_test
+    PROPERTIES
+      SKIP_BUILD_RPATH TRUE
+      BUILD_WITH_INSTALL_RPATH TRUE
+      INSTALL_RPATH_USE_LINK_PATH FALSE
+      INSTALL_RPATH ""
+  )
+  target_include_directories(
+    rocm_server_api_test
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+      ${GTEST_INCLUDE_DIRS}
+  )
+  target_link_libraries(
+    rocm_server_api_test
+    PRIVATE
+      triton-core
+      GTest::gtest
+      GTest::gtest_main
+  )
+  install(
+    TARGETS rocm_server_api_test
+    RUNTIME DESTINATION bin
+  )
 endif() # TRITON_ENABLE_ROCM
 
 #
